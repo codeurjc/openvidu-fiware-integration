@@ -32,6 +32,8 @@ services:
       - NODE_ENV=production
     expose:
       - 3000
+    depends_on:
+      - orion
 
   orion-mongo:
     image: "mongo:3.6"
