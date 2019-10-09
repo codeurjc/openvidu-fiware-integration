@@ -35,7 +35,17 @@ To get the openvidu-fiware-integration demo working, you must clone the repo and
 
 git clone https://github.com/naevatec/openvidu-fiware-integration.git
 cd openvidu-fiware-integration
+
+# Compile fiware-integration
+cd fiware-integration/
+mvn clean install
+
+# Compile openvidu-filters-client
+cd ../openvidu-filters-client/
+mvn clean install
 ```
+
+Both maven commands are configured to execute a script after the packaging in order to move the `.jar` file into the `docker/` folder.
 
 Now that we have everything compiled, we have to move to the `docker/` folder and execute the docker compose command in order to build two images:
 
@@ -65,9 +75,6 @@ And launch the following containers:
 ## CURRENT FOLDER: <your path>/openvidu-filters-client/
 
 cd ../docker/
-sudo chmod 777 build-jars.sh
-# Compile projects. Both maven commands are configured to execute a script after the packaging in order to move the `.jar` file into the `docker/` folder.
-./build-jars.sh
 docker-compose up -d
 ```
 
