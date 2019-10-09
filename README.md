@@ -75,6 +75,8 @@ And launch the following containers:
 ## CURRENT FOLDER: <your path>/openvidu-filters-client/
 
 cd ../docker/
+sudo chmod 777 build-jars.sh
+./build-jars.sh
 docker-compose up -d
 ```
 
