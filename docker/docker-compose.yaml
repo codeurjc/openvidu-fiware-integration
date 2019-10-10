@@ -10,7 +10,7 @@ services:
       - GST_DEBUG="3,Kurento*:4,kms*:4,sdp*:4,webrtc*:4,*rtpendpoint:4,rtp*handler:4,rtpsynchronizer:4,agnosticbin:4"
    
   openvidu-server:
-    image: "openvidu/openvidu-server:nightly-20191003"
+    image: "openvidu/openvidu-server:nightly-20191010"
     environment:
       - openvidu.webhook=true
       - openvidu.webhook.endpoint=http://fiware-integration:8080/api/v1/ov/webhooks
