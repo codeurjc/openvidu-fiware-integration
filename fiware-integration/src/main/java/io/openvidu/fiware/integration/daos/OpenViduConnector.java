@@ -23,16 +23,28 @@ import io.openvidu.fiware.integration.errors.OpenViduConnectorException;
 import io.openvidu.fiware.integration.models.openvidu.requests.OpenViduFilterRequest;
 import io.openvidu.fiware.integration.models.openvidu.requests.OpenViduSignalRequest;
 import io.openvidu.fiware.integration.utils.Consts;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.http.HttpHeaders;
 import org.apache.http.client.fluent.Request;
-import org.apache.http.entity.ContentType;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.http.entity.ContentType.APPLICATION_JSON;
@@ -53,6 +65,7 @@ public class OpenViduConnector {
 
     private OpenViduConfig config;
     private Gson gson;
+    private boolean isDevelop;
 
     /**
      * OpenVidu connector constructor.
@@ -60,6 +73,7 @@ public class OpenViduConnector {
     public OpenViduConnector(OpenViduConfig config) {
         this.config = config;
         this.gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").create();
+        isDevelop = "true".equals(System.getenv("develop"));
     }
 
     /**
@@ -139,20 +153,47 @@ public class OpenViduConnector {
     }
 
     private void sendSecuredPostRequest(Object request, String uri, String user, String password) {
-        String auth = user + ":" + password;
-        byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(StandardCharsets.ISO_8859_1));
-        Request req = Request.Post(uri).addHeader(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType())
-                .addHeader(HttpHeaders.AUTHORIZATION, "Basic " + new String(encodedAuth)).socketTimeout(5000);
-
-        if (request != null) {
-            String jsonEntity = gson.toJson(request);
-            req.bodyString(jsonEntity, ContentType.APPLICATION_JSON).connectTimeout(5000);
-        }
-
         try {
-            req.execute();
-        } catch (IOException e) {
-            throw new OpenViduConnectorException("Could not execute HTTP request", e);
+            CloseableHttpClient httpClient;
+
+            if (isDevelop) {
+                TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
+                SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
+                SSLConnectionSocketFactory sslsf =
+                        new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
+
+                Registry<ConnectionSocketFactory> socketFactoryRegistry =
+                        RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf)
+                                .register("http", new PlainConnectionSocketFactory()).build();
+
+                BasicHttpClientConnectionManager connectionManager =
+                        new BasicHttpClientConnectionManager(socketFactoryRegistry);
+                httpClient =
+                        HttpClients.custom().setSSLSocketFactory(sslsf).setConnectionManager(connectionManager).build();
+            } else {
+                httpClient = HttpClients.createDefault();
+            }
+
+            HttpComponentsClientHttpRequestFactory requestFactory =
+                    new HttpComponentsClientHttpRequestFactory(httpClient);
+            RestTemplate restTemplate = new RestTemplate(requestFactory);
+
+            // Prepare headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBasicAuth(user, password);
+
+            // Body
+            String body = "";
+            if (request != null) {
+                body = gson.toJson(request);
+            }
+
+            HttpEntity<String> entity = new HttpEntity<>(body, headers);
+            ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.POST, entity, String.class);
+        } catch (Exception e) {
+            throw new OpenViduConnectorException("Could not execute HTTPS request", e);
         }
     }
 }

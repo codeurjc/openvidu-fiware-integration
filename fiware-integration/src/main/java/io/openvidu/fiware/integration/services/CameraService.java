@@ -253,7 +253,8 @@ public class CameraService {
         }
 
         // (De)activate the session depending on the value
-        if (request.getActive() != null && request.getActive() != camera.isActive()) {
+        if (request.getActive() !=
+                null) { // && request.getActive() != camera.isActive() - this condition is forced to be true always.
             List<String> to = new ArrayList<>();
             to.add(getPublisherParticipantIdFromSession(cameraUuid));
 

@@ -19,8 +19,7 @@
                       color="red"
                       label="Is enabled?"
                       active
-                      unchecked-icon="fas fa-times"
-                      disable></q-toggle>
+                      unchecked-icon="fas fa-times"></q-toggle>
         </q-card-section>
         <q-card-actions class="actions">
             <q-btn color="primary" label="Update" @click="update"></q-btn>
