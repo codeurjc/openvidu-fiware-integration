@@ -197,13 +197,17 @@ public class CameraService {
             camera = cameraReader.readObject(cameraUuid);
             log.info("333333 {}", camera);
         } catch (OrionConnectorException e) {
+            log.info("333333...11111");
+
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The camera uuid (" + cameraUuid + ") does not exist");
         }
+        log.info("3333....22220");
 
         if (request.getDescription() != null) {
             camera.setDescription(request.getDescription());
         }
+        log.info("3333....33333");
 
         // Update OpenVidu if the filter has changed and is active but only if there are
         // events.
@@ -306,7 +310,7 @@ public class CameraService {
     private String getPublisherStreamIdFromSession(String cameraUuid) {
         Connection connection = openViduConfig.getPublisherConnection(cameraUuid);
 
-        if (connection == null) {
+        if (connection == null || connection.getPublishers() == null || connection.getPublishers().size() == 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Cannot obtain the publisher for the camera uuid (" + cameraUuid + ")");
         }
