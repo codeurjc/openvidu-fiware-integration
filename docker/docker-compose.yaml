@@ -8,74 +8,91 @@ services:
     image: kms-platedetector:latest
     environment:
       - GST_DEBUG="3,Kurento*:4,kms*:4,sdp*:4,webrtc*:4,*rtpendpoint:4,rtp*handler:4,rtpsynchronizer:4,agnosticbin:4"
-   
+    networks:
+      kms-net:
+        aliases:
+          - kms
+
   openvidu-server:
-    image: "openvidu/openvidu-server:nightly-20191010"
+    image: "openvidu/openvidu-server:nightly-20191003"
     environment:
       - openvidu.webhook=true
-      - openvidu.webhook.endpoint=http://fiware-integration:8080/api/v1/ov/webhooks
+      - openvidu.webhook.endpoint=http://host.docker.internal:8080/api/v1/ov/webhooks
       - openvidu.webhook.events=["webrtcConnectionCreated","webrtcConnectionDestroyed","filterEventDispatched"]
       - openvidu.secret=MY_SECRET
-      - openvidu.publicurl=docker
+      - openvidu.publicurl=https://localhost:4443
       - kms.uris=["ws://kms:8888/kurento"]
-    expose:
-      - 4443
+    ports:
+      - "4443:4443"
     depends_on:
       - kms
-   
+    networks:
+      kms-net:
+
   fiware-integration-manager:
-    build:
-      context: ../
-      dockerfile: docker/Dockerfile.fiware.integration.manager.app
+    image: "node:8"
     working_dir: /home/node/app
     environment:
       - NODE_ENV=production
-    expose:
-      - 3000
-    depends_on:
-      - orion
+    volumes:
+      - ../fiware-integration-manager:/home/node/app
+    command: "npm start"
+    ports:
+      - "3000:3000"
 
   orion-mongo:
     image: "mongo:3.6"
-    expose:
-      - 27017
-   
+    ports:
+      - "27017:27017"
+    networks:
+      orion-net:
+        aliases:
+          - mongo
+
   orion:
     image: "fiware/orion"
-    expose:
-      - 1026
+    ports:
+      - "1026:1026"
+    networks:
+      orion-net:
     depends_on:
       - orion-mongo
-    command: -dbhost orion-mongo
+    command: -dbhost mongo
 
   fiware-integration:
     build:
       context: ./
       dockerfile: Dockerfile.java.app
-    image: java-app:latest
     environment:
-      - publicurl=http://fiware-integration:8080
-      - openvidu.publicurl=https://openvidu-server:4443
-      - openvidu.filterurl=http://openvidu-filters-client:9090
+      - publicurl=http://localhost:8080
+      - openvidu.publicurl=https://host.docker.internal:4443
+      - openvidu.filterurl=http://host.docker.internal:9090
       - openvidu.secret=MY_SECRET
-      - orion.publicurl=http://orion:1026
-    expose:
-      - 8080
+      - orion.publicurl=http://host.docker.internal:1026
+      - develop=true
+    image: java-app:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./fiware-integration.jar:/app.jar
     depends_on:
       - orion
       - openvidu-server
 
   openvidu-filters-client:
-    build:
-      context: ./
-      dockerfile: Dockerfile.openvidu.filters.client
-    image: openvidu-filters-client:latest
+    image: java-app:latest
     restart: always
     environment:
-      - OPENVIDU_URL=https://openvidu-server:4443/
+      - OPENVIDU_URL=https://host.docker.internal:4443/
       - OPENVIDU_SECRET=MY_SECRET
-    expose:
-      - 9090
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./openvidu-filters-client.jar:/app.jar
     depends_on:
       - orion
       - openvidu-server
+
+networks:
+  orion-net:
+  kms-net:
