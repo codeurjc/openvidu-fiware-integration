@@ -65,6 +65,7 @@
             async refresh() {
                 let cameraType = "OVCamera";
                 let response = await doGet(orionUrl + "/v2/entities?type=" + cameraType + "&options=keyValues");
+                    console.log("Refresh response", response);
 
                 if (!response.isOk) {
                     console.error(response);
@@ -72,6 +73,7 @@
                 }
 
                 let cameras = response.response;
+                console.log("Refresh cameras", cameras);
                 cameras.forEach((it) => {
                     let filterEvents = getFilterAndEventsFromCamera(it);
                     let filter = filterEvents.filter;
