@@ -187,7 +187,6 @@ public class CameraService {
         }
     }
 
-
     /**
      * Updates the specified camera.
      */
@@ -196,6 +195,7 @@ public class CameraService {
         ApiCameraModel camera;
         try {
             camera = cameraReader.readObject(cameraUuid);
+            log.info("333333 {}", camera);
         } catch (OrionConnectorException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The camera uuid (" + cameraUuid + ") does not exist");
@@ -205,15 +205,18 @@ public class CameraService {
             camera.setDescription(request.getDescription());
         }
 
-        // Update OpenVidu if the filter has changed and is active but only if there are events.
-        if (camera.isActive() && !request.getEvents().isEmpty()) {
+        // Update OpenVidu if the filter has changed and is active but only if there are
+        // events.
+        if (camera.isActive() && request.getEvents() != null && !request.getEvents().isEmpty()) {
             String publisherStreamId = getPublisherStreamIdFromSession(cameraUuid);
+            log.info("4444");
 
             if (!checkFiltersAreEquals(camera.getFilter(), request.getFilter())) {
                 // Remove old events
                 for (String ev : camera.getEvents()) {
                     openViduConnector.removeEventListener(cameraUuid, publisherStreamId, ev);
                 }
+                log.info("5555");
 
                 if (request.getFilter() == null) {
                     // Remove the filter
@@ -232,6 +235,8 @@ public class CameraService {
                     }
                 }
             } else if (!checkFilterEventsAreEquals(camera.getEvents(), request.getEvents())) {
+                log.info("6666");
+
                 // Remove old events
                 for (String ev : camera.getEvents()) {
                     openViduConnector.removeEventListener(cameraUuid, publisherStreamId, ev);
@@ -253,8 +258,8 @@ public class CameraService {
         }
 
         // (De)activate the session depending on the value
-        if (request.getActive() !=
-                null) { // && request.getActive() != camera.isActive() - this condition is forced to be true always.
+        if (request.getActive() != null) { // && request.getActive() != camera.isActive() - this condition is forced to
+                                           // be true always.
             List<String> to = new ArrayList<>();
             to.add(getPublisherParticipantIdFromSession(cameraUuid));
 

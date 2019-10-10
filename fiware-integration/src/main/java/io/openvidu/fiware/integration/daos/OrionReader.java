@@ -50,7 +50,9 @@ public abstract class OrionReader<T, O extends OrionEntity> {
      * @param id a id as String
      */
     public T readObject(String id) {
+        System.out.println("11111: " + id);
         O orionEntity = orionConnector.readEntity(id);
+        System.out.println("22222: " + id);
         return mapOrionEntityToEntity(orionEntity);
     }
 
