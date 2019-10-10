@@ -195,32 +195,23 @@ public class CameraService {
         ApiCameraModel camera;
         try {
             camera = cameraReader.readObject(cameraUuid);
-            log.info("333333 {}", camera);
         } catch (OrionConnectorException e) {
-            log.info("333333...11111");
-
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The camera uuid (" + cameraUuid + ") does not exist");
         }
-        log.info("3333....22220");
 
         if (request.getDescription() != null) {
             camera.setDescription(request.getDescription());
         }
-        log.info("3333....33333");
 
         // Update OpenVidu if the filter has changed and is active but only if there are
         // events.
         if (camera.isActive() && request.getEvents() != null && !request.getEvents().isEmpty()) {
             String publisherStreamId = getPublisherStreamIdFromSession(cameraUuid);
-            log.info("4444");
-
             if (!checkFiltersAreEquals(camera.getFilter(), request.getFilter())) {
                 // Remove old events
                 for (String ev : camera.getEvents()) {
                     openViduConnector.removeEventListener(cameraUuid, publisherStreamId, ev);
-                }
-                log.info("5555");
 
                 if (request.getFilter() == null) {
                     // Remove the filter
